@@ -35,7 +35,7 @@ export class AdminRolesController {
   @Get('admin-users')
   async getAdminUsers(@Request() req) {
     try {
-      const users = await this.adminRolesService.getAdminUsers('ADMIN-001' // Default admin since auth disabled);
+      const users = await this.adminRolesService.getAdminUsers('ADMIN-001'); // Default admin since auth disabled);
       return {
         success: true,
         users,
@@ -49,7 +49,7 @@ export class AdminRolesController {
   @Get('available-roles')
   async getAvailableRoles(@Request() req) {
     try {
-      const roles = await this.adminRolesService.getAvailableRoles('ADMIN-001' // Default admin since auth disabled);
+      const roles = await this.adminRolesService.getAvailableRoles('ADMIN-001'); // Default admin since auth disabled);
       return {
         success: true,
         roles,
@@ -247,7 +247,7 @@ export class AdminRolesController {
       };
 
       const result = await this.adminRolesService.getAllUsers(
-        'ADMIN-001' // Default admin since auth disabled,
+        'ADMIN-001', // Default admin since auth disabled,
         filters,
         pagination,
       );
@@ -294,7 +294,7 @@ export class AdminRolesController {
     try {
       const user = await this.adminRolesService.updateUserStatus(
         userId,
-        'ADMIN-001' // Default admin since auth disabled,
+        'ADMIN-001', // Default admin since auth disabled,
         updateData,
       );
       return {
@@ -311,7 +311,7 @@ export class AdminRolesController {
   @Get('users/stats/overview')
   async getUserStats(@Request() req) {
     try {
-      const stats = await this.adminRolesService.getUserStats('ADMIN-001' // Default admin since auth disabled);
+      const stats = await this.adminRolesService.getUserStats('ADMIN-001'); // Default admin since auth disabled);
       return {
         success: true,
         stats,
@@ -337,7 +337,7 @@ export class AdminRolesController {
       }
 
       const users = await this.adminRolesService.searchUsers(
-        'ADMIN-001' // Default admin since auth disabled,
+        'ADMIN-001', // Default admin since auth disabled,
         searchTerm,
         limit,
       );
