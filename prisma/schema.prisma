@@ -1,0 +1,449 @@
+// BAAB Investment Platform - Prisma Schema
+// PostgreSQL database schema for production-ready investment marketplace
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// User model - Core user management
+model User {
+  id        String   @id @default(cuid())
+  email     String?  @unique
+  phone     String?  @unique
+  password  String
+  name      String
+  role      Role     @default(PROJECT_OWNER)
+  
+  // Admin-specific fields (only for ADMIN users)
+  adminRole   AdminRole?
+  permissions Permission[]
+  
+  // Verification status
+  emailVerified Boolean @default(false)
+  phoneVerified Boolean @default(false)
+  
+  // Optional verification tokens (nullable for security)
+  emailVerificationToken String?
+  phoneVerificationCode  String?
+  passwordResetToken     String?
+  passwordResetExpires   DateTime?
+  
+  // Profile information
+  image        String?
+  city         String?
+  businessType String?
+  
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  // Relations
+  businesses         Business[]
+  verifiedBusinesses Business[] @relation("BusinessVerifier")
+  investmentRequests InvestmentRequest[] @relation("InvestorRequests")
+  receivedRequests   InvestmentRequest[] @relation("BusinessOwnerRequests")
+  reviewedRequests   InvestmentRequest[] @relation("ReviewerRequests")
+  notifications      Notification[]
+  verificationTokens VerificationToken[]
+  userActivities     ActivityLog[] @relation("UserActivities")
+  adminActivities    ActivityLog[] @relation("AdminActivities")
+  settings           UserSettings? @relation("UserSettings")
+  
+  @@map("users")
+  @@index([email])
+  @@index([phone])
+  @@index([role])
+  @@index([adminRole])
+  @@index([role, adminRole])
+}
+
+// User roles enumeration
+enum Role {
+  INVESTOR
+  PROJECT_OWNER
+  ADMIN
+  
+  @@map("Role")
+}
+
+// Admin-specific roles for fine-grained permissions
+enum AdminRole {
+  SUPER_ADMIN          // Full access to everything
+  CONTENT_MODERATOR    // Can manage businesses and content
+  INVESTMENT_MODERATOR // Can manage investment requests
+  USER_MANAGER         // Can manage users
+  READ_ONLY_ADMIN      // Read-only access to admin dashboard
+
+  @@map("AdminRole")
+}
+
+// Granular permissions for admin functions
+enum Permission {
+  // Business management
+  MANAGE_BUSINESSES
+  VERIFY_BUSINESSES
+  VIEW_BUSINESSES
+  
+  // Investment management
+  MANAGE_INVESTMENT_REQUESTS
+  REVIEW_INVESTMENT_REQUESTS
+  VIEW_INVESTMENT_REQUESTS
+  
+  // User management
+  MANAGE_USERS
+  VIEW_USERS
+  ASSIGN_ROLES
+  
+  // System management
+  MANAGE_SETTINGS
+  VIEW_ANALYTICS
+  MANAGE_CONTENT
+  
+  // Admin management
+  MANAGE_ADMINS
+  ASSIGN_ADMIN_ROLES
+
+  @@map("Permission")
+}
+
+// Verification tokens for email/phone/password reset
+model VerificationToken {
+  id        String            @id @default(cuid())
+  userId    String
+  token     String            @unique
+  type      VerificationTokenType
+  expiresAt DateTime
+  createdAt DateTime          @default(now())
+  
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@map("verification_tokens")
+  @@index([token])
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+// Verification token types
+enum VerificationTokenType {
+  EMAIL_VERIFICATION
+  PHONE_VERIFICATION
+  PASSWORD_RESET
+  
+  @@map("VerificationTokenType")
+}
+
+// Business listings model
+model Business {
+  id          String   @id @default(cuid())
+  title       String
+  description String
+  price       BigInt   // Amount in cents/fils for precision
+  currency    Currency @default(USD)
+  city        String
+  category    String
+  images      String[] // Array of image URLs
+  
+  // Business details
+  location        String
+  established     Int?    // Year established
+  employees       Int?    // Number of employees
+  monthlyRevenue  BigInt? // Monthly revenue in cents/fils
+  tags            String[] // Business tags for search
+  
+  // Status and ownership
+  status    BusinessStatus @default(PENDING)
+  ownerId   String
+  
+  // Admin verification fields
+  verificationNotes String? // Admin feedback/comments
+  verifiedBy        String? // Admin user ID who verified
+  verificationDate  DateTime? // When verification was completed
+  
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  // Relations
+  owner              User                @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  verifier           User?               @relation("BusinessVerifier", fields: [verifiedBy], references: [id], onDelete: SetNull)
+  investmentRequests InvestmentRequest[]
+  notifications      Notification[]
+  
+  @@map("businesses")
+  // Basic field indexes
+  @@index([ownerId])
+  @@index([status])
+  @@index([city])
+  @@index([category])
+  @@index([createdAt])
+  @@index([verifiedBy])
+  @@index([verificationDate])
+  @@index([price]) // For price range filtering
+  @@index([established]) // For establishment year filtering
+  @@index([employees]) // For company size filtering
+  @@index([monthlyRevenue]) // For revenue range filtering
+  @@index([tags]) // For tags array search (GIN index will be added via migration)
+  
+  // Composite indexes for common search patterns
+  @@index([status, city]) // Filter by status and location
+  @@index([category, status]) // Filter by category and status
+  @@index([status, createdAt(sort: Desc)]) // Latest approved businesses
+  @@index([city, category, status]) // Complex filtering
+  @@index([status, verificationDate(sort: Desc)]) // Admin verification history
+  
+  // Search optimization indexes
+  @@index([status, price]) // Status + price range queries
+  @@index([city, price]) // Location + price range queries
+  @@index([category, price]) // Category + price range queries
+  @@index([status, city, category]) // Multi-criteria filtering
+  @@index([status, city, price]) // Location-based price search
+  @@index([status, category, price]) // Category-based price search
+  @@index([city, category, price, status]) // Comprehensive search index
+}
+
+// Business status enumeration
+enum BusinessStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  SOLD
+  FUNDED
+  SUSPENDED
+  
+  @@map("BusinessStatus")
+}
+
+// Currency enumeration
+enum Currency {
+  USD
+  IQD  // Iraqi Dinar
+  
+  @@map("Currency")
+}
+
+// Investment requests model
+model InvestmentRequest {
+  id              String   @id @default(cuid())
+  businessId      String
+  investorId      String
+  businessOwnerId String   // For easy querying
+  
+  // Investment details
+  requestedAmount BigInt   // Amount requested by business
+  offeredAmount   BigInt   // Amount offered by investor
+  currency        Currency @default(USD)
+  message         String?  // Investor's message
+  
+  // Request metadata
+  investorType        InvestorType @default(INDIVIDUAL)
+  previousInvestments Int          @default(0)
+  
+  // Status and dates
+  status       RequestStatus @default(PENDING)
+  requestDate  DateTime      @default(now())
+  approvalDate DateTime?
+  rejectionDate DateTime?
+  rejectionReason String?
+  
+  // Admin review fields
+  reviewedBy   String?   // Admin user ID who reviewed
+  reviewDate   DateTime? // When review was completed
+  adminNotes   String?   // Admin comments/feedback
+  
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  // Relations
+  business      Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  investor      User     @relation("InvestorRequests", fields: [investorId], references: [id], onDelete: Cascade)
+  businessOwner User     @relation("BusinessOwnerRequests", fields: [businessOwnerId], references: [id], onDelete: Cascade)
+  reviewer      User?    @relation("ReviewerRequests", fields: [reviewedBy], references: [id], onDelete: SetNull)
+  
+  @@map("investment_requests")
+  @@index([businessId])
+  @@index([investorId])
+  @@index([businessOwnerId])
+  @@index([reviewedBy])
+  @@index([status])
+  @@index([requestDate])
+  @@index([reviewDate])
+  // Composite indexes for common query patterns
+  @@index([businessOwnerId, status]) // Owner's requests by status
+  @@index([investorId, status]) // Investor's requests by status
+  @@index([status, requestDate(sort: Desc)]) // Latest requests by status
+  @@index([businessOwnerId, status, requestDate(sort: Desc)]) // Owner dashboard queries
+  @@index([reviewedBy, reviewDate(sort: Desc)]) // Admin review history
+}
+
+// Investment request status
+enum RequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  WITHDRAWN
+  COMPLETED
+  
+  @@map("RequestStatus")
+}
+
+// Investor type enumeration
+enum InvestorType {
+  INDIVIDUAL
+  COMPANY
+  FUND
+  
+  @@map("InvestorType")
+}
+
+// Notifications model
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String
+  type      NotificationType
+  title     String
+  message   String
+  read      Boolean          @default(false)
+  priority  NotificationPriority @default(MEDIUM)
+  
+  // Optional action and metadata
+  actionUrl String?
+  metadata  Json?    // Flexible JSON field for notification-specific data
+  
+  // Related entities (optional foreign keys)
+  businessId          String?
+  investmentRequestId String?
+  
+  // Timestamps
+  timestamp DateTime @default(now())
+  readAt    DateTime?
+  
+  // Relations
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  business Business? @relation(fields: [businessId], references: [id], onDelete: SetNull)
+  
+  @@map("notifications")
+  @@index([userId])
+  @@index([type])
+  @@index([read])
+  @@index([priority])
+  @@index([timestamp])
+  // Composite indexes for common query patterns
+  @@index([userId, read]) // User's unread notifications
+  @@index([userId, timestamp(sort: Desc)]) // User's latest notifications
+  @@index([userId, read, timestamp(sort: Desc)]) // User notification dashboard
+  @@index([userId, type, read]) // Filtered user notifications
+}
+
+// Notification types
+enum NotificationType {
+  INVESTMENT_REQUEST
+  BUSINESS_APPROVED
+  BUSINESS_REJECTED
+  DEAL_COMPLETED
+  PROFILE_VERIFICATION
+  SYSTEM_MAINTENANCE
+  NEW_MESSAGE
+  PAYMENT_RECEIVED
+  DOCUMENT_SIGNED
+  
+  @@map("NotificationType")
+}
+
+// Notification priority levels
+enum NotificationPriority {
+  LOW
+  MEDIUM  
+  HIGH
+  URGENT
+  
+  @@map("NotificationPriority")
+}
+
+
+// User settings model
+model UserSettings {
+  id     String @id @default(cuid())
+  userId String @unique
+  
+  // Notification preferences
+  emailNotifications     Boolean @default(true)
+  pushNotifications      Boolean @default(true)
+  smsNotifications       Boolean @default(false)
+  marketingNotifications Boolean @default(false)
+  investmentUpdates      Boolean @default(true)
+  businessUpdates        Boolean @default(true)
+  messageAlerts          Boolean @default(true)
+  weeklyDigest          Boolean @default(true)
+  
+  // Privacy settings
+  profileVisibility      ProfileVisibility @default(INVESTORS_ONLY)
+  showContactInfo        Boolean @default(false)
+  showBusinessCount      Boolean @default(true)
+  showInvestmentHistory  Boolean @default(false)
+  allowDirectMessages    Boolean @default(true)
+  
+  // Preferences
+  language               String @default("ar")
+  theme                  String @default("system")
+  currency               Currency @default(USD)
+  dateFormat             String @default("dd/mm/yyyy")
+  timezone               String @default("Asia/Baghdad")
+  
+  // Security settings
+  twoFactorEnabled       Boolean @default(false)
+  loginAlerts            Boolean @default(true)
+  sessionTimeout         Int @default(30) // minutes
+  allowMultipleSessions  Boolean @default(false)
+  
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  // Relations
+  user User @relation("UserSettings", fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@map("user_settings")
+  @@index([userId])
+}
+
+// Profile visibility options
+enum ProfileVisibility {
+  PUBLIC
+  PRIVATE
+  INVESTORS_ONLY
+  
+  @@map("ProfileVisibility")
+}
+
+// Activity logging for audit trails
+model ActivityLog {
+  id          String   @id @default(cuid())
+  userId      String?  // Nullable for system activities
+  adminId     String?  // Admin who performed the action (if applicable)
+  action      String   // Action type (e.g., 'USER_LOGIN', 'BUSINESS_VERIFIED', 'ROLE_UPDATED')
+  entityType  String?  // Type of entity affected (e.g., 'User', 'Business', 'InvestmentRequest')
+  entityId    String?  // ID of the affected entity
+  description String   // Human-readable description of the action
+  metadata    Json?    // Additional data (old/new values, request details, etc.)
+  ipAddress   String?  // IP address of the action
+  userAgent   String?  // User agent string
+  timestamp   DateTime @default(now())
+
+  user  User? @relation("UserActivities", fields: [userId], references: [id], onDelete: Cascade)
+  admin User? @relation("AdminActivities", fields: [adminId], references: [id], onDelete: SetNull)
+
+  @@map("activity_logs")
+  @@index([userId])
+  @@index([adminId])
+  @@index([action])
+  @@index([entityType])
+  @@index([entityId])
+  @@index([timestamp])
+}
