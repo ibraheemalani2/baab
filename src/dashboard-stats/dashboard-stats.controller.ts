@@ -27,7 +27,7 @@ export class DashboardStatsController {
     description: 'Dashboard summary retrieved successfully',
   })
   async getDashboardSummary(@Request() req) {
-    return this.dashboardStatsService.getUserDashboardSummary('default-user' // Default since auth disabled);
+    return this.dashboardStatsService.getUserDashboardSummary('default-user'); // Default since auth disabled);
   }
 
   @Get('stats')
@@ -37,7 +37,7 @@ export class DashboardStatsController {
     description: 'Dashboard statistics retrieved successfully',
   })
   async getStats(@Request() req) {
-    return this.dashboardStatsService.getUserDashboardStats('default-user' // Default since auth disabled);
+    return this.dashboardStatsService.getUserDashboardStats('default-user'); // Default since auth disabled);
   }
 
   @Get('recent-listings')
@@ -55,7 +55,7 @@ export class DashboardStatsController {
   async getRecentListings(@Request() req, @Query('limit') limit?: string) {
     const limitNum = limit ? parseInt(limit, 10) : 5;
     return this.dashboardStatsService.getUserRecentListings(
-      'default-user' // Default since auth disabled,
+      'default-user', // Default since auth disabled,
       limitNum,
     );
   }
@@ -71,7 +71,7 @@ export class DashboardStatsController {
     description: 'Recent activity generated successfully',
   })
   async getRecentActivity(@Request() req) {
-    return this.dashboardStatsService.generateRecentActivity('default-user' // Default since auth disabled);
+    return this.dashboardStatsService.generateRecentActivity('default-user'); // Default since auth disabled);
   }
 
   @Get('business-performance')
@@ -99,6 +99,6 @@ export class DashboardStatsController {
     description: 'Monthly trends retrieved successfully',
   })
   async getMonthlyTrends(@Request() req) {
-    return this.dashboardStatsService.getMonthlyTrends('default-user' // Default since auth disabled);
+    return this.dashboardStatsService.getMonthlyTrends('default-user'); // Default since auth disabled);
   }
 }
