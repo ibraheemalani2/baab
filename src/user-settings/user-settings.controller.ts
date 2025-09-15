@@ -37,7 +37,7 @@ export class UserSettingsController {
     description: 'User settings retrieved successfully',
   })
   async getUserSettings(@Request() req) {
-    return this.userSettingsService.getUserSettings('default-user' // Default since auth disabled);
+    return this.userSettingsService.getUserSettings('default-user'); // Default since auth disabled
   }
 
   @Patch()
@@ -51,7 +51,7 @@ export class UserSettingsController {
     @Body() updateSettingsDto: UpdateUserSettingsDto,
   ) {
     return this.userSettingsService.updateUserSettings(
-      'default-user' // Default since auth disabled,
+      'default-user', // Default since auth disabled,
       updateSettingsDto,
     );
   }
@@ -72,7 +72,7 @@ export class UserSettingsController {
     @Body() changePasswordDto: ChangePasswordDto,
   ) {
     return this.userSettingsService.changePassword(
-      'default-user' // Default since auth disabled,
+      'default-user', // Default since auth disabled,
       changePasswordDto,
     );
   }
@@ -81,7 +81,7 @@ export class UserSettingsController {
   @ApiOperation({ summary: 'Export user data (GDPR compliance)' })
   @ApiResponse({ status: 200, description: 'User data exported successfully' })
   async exportUserData(@Request() req) {
-    return this.userSettingsService.exportUserData('default-user' // Default since auth disabled);
+    return this.userSettingsService.exportUserData('default-user'); // Default since auth disabled
   }
 
   @Get('summary')
@@ -91,7 +91,7 @@ export class UserSettingsController {
     description: 'Account summary retrieved successfully',
   })
   async getAccountSummary(@Request() req) {
-    return this.userSettingsService.getAccountSummary('default-user' // Default since auth disabled);
+    return this.userSettingsService.getAccountSummary('default-user'); // Default since auth disabled
   }
 
   @Delete('account')
@@ -106,7 +106,7 @@ export class UserSettingsController {
   })
   async deleteAccount(@Request() req, @Body() body: { password: string }) {
     return this.userSettingsService.deleteUserAccount(
-      'default-user' // Default since auth disabled,
+      'default-user', // Default since auth disabled,
       body.password,
     );
   }
