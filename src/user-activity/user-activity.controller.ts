@@ -33,7 +33,7 @@ export class UserActivityController {
     description: 'Activity log retrieved successfully',
   })
   async getUserActivities(@Request() req, @Query() query: ActivityQueryDto) {
-    return this.userActivityService.findUserActivities('default-user' // Default since auth disabled, query);
+    return this.userActivityService.findUserActivities('default-user', query); // Default since auth disabled
   }
 
   @Get('stats')
@@ -43,7 +43,7 @@ export class UserActivityController {
     description: 'Activity statistics retrieved successfully',
   })
   async getActivityStats(@Request() req) {
-    return this.userActivityService.getActivityStats('default-user' // Default since auth disabled);
+    return this.userActivityService.getActivityStats('default-user'); // Default since auth disabled
   }
 
   @Get('summary')
@@ -53,6 +53,6 @@ export class UserActivityController {
     description: 'Activity summary generated successfully',
   })
   async getActivitySummary(@Request() req) {
-    return this.userActivityService.generateUserActivitySummary('default-user' // Default since auth disabled);
+    return this.userActivityService.generateUserActivitySummary('default-user'); // Default since auth disabled
   }
 }
